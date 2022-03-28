@@ -20,18 +20,34 @@ func main () {
 		panic ("cant connect to server")
 	}
 	defer conn.Close()
-	conn.Write([]byte(InputString () + END_BYTES))
+	go ClientOutput(conn)
+	ClientInput(conn)
+}
 
+func ClientInput (conn net.Conn) {
+	for {
+		conn.Write([]byte(InputString() + END_BYTES))
+	}
+}
+
+func ClientOutput (conn net.Conn) {
 	var (
-		buffer = make ([]byte, BUFF_SIZE)
+		buffer = make([]byte, 512)
 		message string
 	)
-	for {
-		length, err := conn.Read(buffer)
-		if ((length == 0) || (err != nil)) {break}
-		message += string(buffer[:length])
+	close: for {
+		message = ""
+		for {
+			length, err := conn.Read(buffer)
+			if err != nil {break close}
+			message += string(buffer[:length])
+			if strings.HasSuffix(message, END_BYTES) {
+				message = strings.TrimSuffix(message, END_BYTES)
+				break
+			}
+		}
+		fmt.Println(message)
 	}
-	fmt.Println(message)
 }
 
 func InputString () string {
